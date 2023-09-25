@@ -1,0 +1,51 @@
+void printGrepO(char *lineFromFile, char *keywords[], char *filename, Flags *flags, Options *addOptions) {
+        regex_t regex;
+        regmatch_t match;
+        int regexFlags = 0;
+        if (flags->i_ignoreCase)
+            regexFlags |= REG_ICASE;
+        else
+            regexFlags |= REG_EXTENDED;
+        int offset = 0;
+        int isMatchFoundForFile = false;
+        while (lineFromFile[offset] != '\0') {
+            int isMatchFound = false;
+            int min = strlen(lineFromFile);
+            int max = 0;
+            int result = -1;
+            for (int j = 0; j < addOptions->countKeywords; j++) {
+                result = regcomp(&regex, keywords[j], regexFlags);
+                if (result != 0) {
+                    fprintf(stderr, "Error compiling regular expression\n");
+                    regfree(&regex);
+                }             
+                if (regexec(&regex, &lineFromFile[offset], 1, &match, 0) == flags->v_invertMatch) {
+                    if (result != 0 && result != REG_NOMATCH) {
+                        fprintf(stderr, "Error executing regexec\n");
+                    }
+                    isMatchFound = true;
+                    isMatchFoundForFile = true;
+                    if (min > offset + match.rm_so) {
+                        min = offset + match.rm_so;
+                        max = offset + match.rm_eo;
+                    }
+                }
+                regfree(&regex);
+            }
+            if (!isMatchFound || flags->v_invertMatch) {
+                break;
+            }
+                char *matchedString = strndup_(&lineFromFile[min], max - min);
+                if ((flags->c_count || flags->l_filesWithMatches) == 0 && !flags->v_invertMatch) {
+                    if (addOptions->countFiles > 1 && !(flags->h_noFilename))
+                        printf("%s:", filename);
+                    if (flags->n_lineNumber)
+                        printf("%d:", addOptions->countCurrentLine);
+                    printf("%s\n", matchedString);
+                }
+                free(matchedString);
+                offset = min + 1; 
+        }
+        if (isMatchFoundForFile)
+                addOptions->countMatches++;
+    }

@@ -1,0 +1,75 @@
+#include <stdio.h>
+    #include <getopt.h>
+    #include <regex.h>
+    #include <stdbool.h>
+    #include <stdlib.h>
+    #include <string.h>
+    #include <unistd.h>
+    
+    #define KEYWORD_INDEX 1
+    #define MAX_ARGS 100
+
+    typedef struct {
+    bool e_pattern;
+    bool i_ignoreCase;
+    bool v_invertMatch;
+    bool c_count;
+    bool l_filesWithMatches;
+    bool n_lineNumber;
+    bool h_noFilename;
+    bool s_noMessages;
+    bool f_file;
+    bool o_onlyMatching;
+    } Flags;
+
+    typedef struct {
+    int countFiles;
+    int countKeywords;
+    int countTotalLines;
+    int countCurrentLine;
+    int countMatches;
+    } Options;
+
+    void s21_grep (int argc, char *argv[]);
+    int readFlagsGrep(int argc, char *argv[], Flags *flags, char *keywords[], Options *addOptions);
+    int printGrep(char *lineFromFile, char *keywordname, char *filename, Flags *flags, Options *addOptions);
+    void appendFilesList(char *argv[], int optind, char *files[]);
+    void appendFilesListForFlagE(char *argv[], char *files[]);
+    void createKeywordsList(char *argv[], char *keywords[], Options *addOptions);
+    void createKeywordsListF(char *keywords[], char *optarg, Options *addOptions);
+    void appendKeywordsList(char *keywords[], char *optarg, Options *addOptions);
+    void makeCommandlineArgumentsList (int argc, char *argv[], char *commandLineArgumenstList[]);
+    void makeFilesList (int argc, char *commandLineArgumenstList[], Flags *flags, char *files[], Options *addOptions);
+    int regexResult(char *lineFromFile, char *regexPattern, Flags *flags);
+    void runGrep(Flags *flags, char *keywords[], char *files[], FILE **file, Options *addOptions);
+    void printGrepOthers(char *filename, Flags *flags, Options *addOptions);
+    void printGrepO(char *lineFromFile, char *keywords[], char *filename, Flags *flags, Options *addOptions);
+
+    int main(int argc, char *argv[]) { 
+        s21_grep(argc, argv);
+        return 0;
+    }
+
+    void s21_grep (int argc, char *argv[]) {
+        if (argc < 3) {
+            fprintf(stderr, "Usage: grep [OPTION]... PATTERNS [FILE]...\nTry 'grep --help' for more information.\n");
+            exit(1);
+        }
+        char *keywords[MAX_ARGS] = {NULL};
+        char *commandLineArgumenstList[MAX_ARGS] = {NULL};
+        char *files[MAX_ARGS] = {NULL};
+        FILE *file;
+        Flags flags = {false, false, false, false, false, false, false, false, false, false};
+        Options addOptions = {0, 0, 0, 0, 0}; 
+        createKeywordsList(argv, keywords, &addOptions);
+        makeCommandlineArgumentsList(argc, argv, commandLineArgumenstList);
+        while(readFlagsGrep(argc, argv, &flags, keywords, &addOptions) != -1);
+        makeFilesList (argc, commandLineArgumenstList, &flags, files, &addOptions);
+        runGrep(&flags, keywords, files, &file, &addOptions);
+        // for (int j = 0; j < addOptions.countKeywords; j++)
+        //     printf("%s", keywords[j]); 
+        // for (int j = 0; j < addOptions.countFiles; j++)
+        //     printf("%s", files[j]);
+        for (int j = 0; j < addOptions.countKeywords; j++)
+            free(keywords[j]);
+    }

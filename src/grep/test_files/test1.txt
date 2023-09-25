@@ -1,0 +1,47 @@
+    void runGrep(Flags *flags, char *keywords[], char *files[], FILE **file, Options *addOptions) {
+        char lineFromFile[BUFSIZ];
+        for (int i = 0; i < addOptions->countFiles; i++) {
+            *file = fopen(files[i], "r");
+            if (*file == NULL) {
+                fprintf(stderr, "grep: %s: No such file or directory\n", files[i]);
+                continue;
+            }
+            int j = 0;
+            while (fgets(lineFromFile, sizeof lineFromFile, *file) != NULL) {//lineFromFile
+                addOptions->countCurrentLine++;
+                if (!flags->o_onlyMatching) {
+                    for (j = 0; j < addOptions->countKeywords; j++) {
+                        if (printGrep(lineFromFile, keywords[j], files[i], flags, addOptions)) {
+                            break;
+                        }
+                    } 
+                }
+                if (flags->o_onlyMatching)
+                    printGrepO(lineFromFile, keywords, files[i], flags, addOptions);
+            }
+            printGrepOthers(files[i], flags, addOptions);
+            fclose(*file);
+            addOptions->countMatches = 0;
+            addOptions->countCurrentLine = 0;
+        }
+    }
+                                   
+    int printGrep(char *lineFromFile, char *keywordname, char *filename, Flags *flags, Options *addOptions) {                
+        int isMatched = false;
+        if (regexResult(lineFromFile, keywordname, flags) == flags->v_invertMatch) {
+            isMatched = true;
+            addOptions->countMatches++;
+            if (((flags->c_count || flags->l_filesWithMatches) == 0) && !(flags->o_onlyMatching && flags->v_invertMatch)) {
+                if (addOptions->countFiles > 1 && !(flags->h_noFilename))
+                    printf("%s:", filename);
+                if (flags->n_lineNumber)
+                    printf("%d:", addOptions->countCurrentLine);
+                if (!flags->o_onlyMatching) {
+                    if (lineFromFile[strlen(lineFromFile) - 1] == '\n') 
+                        lineFromFile[strlen(lineFromFile) - 1] = '\0';
+                    printf("%s\n", lineFromFile);
+                }
+            }
+        }
+        return isMatched;        
+    }
